@@ -877,9 +877,9 @@ void PermutationForDeposition (Gpu::DeviceVector<index_type>& perm, index_type n
         });
 }
 
-template <class index_type, class PTile>
+template <class index_type, class pos_struct>
 void PermutationForDepositionSpesh (Gpu::DeviceVector<index_type>& perm, index_type nitems,
-                               const PTile& ptile, Box bx, Geometry geom, const IntVect idx_type,
+                               pos_struct const* v, Box bx, Geometry geom, const IntVect idx_type,
                                const index_type* tilePerm)
 {
     AMREX_ALWAYS_ASSERT(idx_type.allGE(IntVect(0)) && idx_type.allLE(IntVect(2)));
@@ -908,11 +908,9 @@ void PermutationForDepositionSpesh (Gpu::DeviceVector<index_type>& perm, index_t
         [=] AMREX_GPU_DEVICE (index_type idx) noexcept
             {
 
-                const auto& p = make_particle<ParticleType>{}(ptd,tilePerm[idx]);
-
                 //* is component wise, so why mul by inv size (dxi)?
                 // maybe inverse is like multiplicative inverse, not reverse order
-                IntVect iv = ((p.pos() - pos_offset) * dxi).round(); //vector!
+                IntVect iv = ((v[tilePerm[idx]].pos() - pos_offset) * dxi).round(); //vector!
 
                 IntVect iv_coarse = iv / refine_vect;
                 IntVect iv_remainder = iv - iv_coarse * refine_vect;
