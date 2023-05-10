@@ -1217,6 +1217,28 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
     }
 }
 
+//BEGIN NEW
+//TODO maybe need to register this function somewhere?
+//template <typename ParticleType, int NArrayReal, int NArrayInt,
+//          template<class> class Allocator>
+//void
+//ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
+//::tileSort (IntVect idx_type)
+//{
+//    BL_PROFILE("ParticleContainer::SortParticlesForDeposition()");
+//
+//    const auto& ptile = ParticlesAt(lev, mfi);
+//    const size_t np   = ptile.numParticles();
+//
+//    const Box& box = mfi.validbox();
+//
+//    using index_type = typename decltype(m_bins)::index_type;
+//    Gpu::DeviceVector<index_type> perm;
+//    PermutationForDepositionSpesh<index_type>(perm, np, ptile, box, geom, idx_type);
+//    //ReorderParticles(lev, mfi, perm.dataPtr());
+//}
+//END NEW
+
 //
 // The GPU implementation of Redistribute
 //

@@ -922,6 +922,52 @@ void PermutationForDeposition (Gpu::DeviceVector<index_type>& perm, index_type n
         });
 }
 
+template <class index_type, class PTile>
+void PermutationForDepositionSpesh (Gpu::DeviceVector<index_type>& perm, index_type nitems,
+                               const PTile& ptile, Box bx, Geometry geom, const IntVect idx_type,
+                               const index_type* tilePerm)
+{
+    AMREX_ALWAYS_ASSERT(idx_type.allGE(IntVect(0)) && idx_type.allLE(IntVect(2)));
+
+    const IntVect refine_vect = max(idx_type, IntVect(1)).min(IntVect(2));
+    const IntVect type_vect = idx_type - idx_type / 2 * 2;
+
+    geom.refine(refine_vect); //dunno what refining is
+
+    Box domain = geom.Domain();
+
+    bx.convert(type_vect);
+    domain.convert(type_vect);
+
+    const RealVect dxi(geom.InvCellSize()); // not sure why usefull
+    // theres a lot going on here. Don't udnerstand
+    const RealVect pos_offset = Real(0.5) * (RealVect(geom.ProbLo()) + RealVect(geom.ProbHi())
+        - RealVect(geom.CellSize()) * RealVect(domain.smallEnd() + domain.bigEnd()));
+
+    const int ref_product = AMREX_D_TERM(refine_vect[0], * refine_vect[1], * refine_vect[2]);
+    const IntVect ref_offset(AMREX_D_DECL(1, refine_vect[0], refine_vect[0] * refine_vect[1]));
+
+    auto ptd = ptile.getConstParticleTileData();
+    using ParticleType = typename PTile::ParticleType::ConstType;
+    PermutationForDeposition<index_type>(perm, nitems, bx.numPts() * ref_product,
+        [=] AMREX_GPU_DEVICE (index_type idx) noexcept
+            {
+
+                const auto& p = make_particle<ParticleType>{}(ptd,tilePerm[idx]);
+
+                //* is component wise, so why mul by inv size (dxi)?
+                // maybe inverse is like multiplicative inverse, not reverse order
+                IntVect iv = ((p.pos() - pos_offset) * dxi).round(); //vector!
+
+                IntVect iv_coarse = iv / refine_vect;
+                IntVect iv_remainder = iv - iv_coarse * refine_vect;
+
+                iv_coarse = iv_coarse.max(bx.smallEnd());
+                iv_coarse = iv_coarse.min(bx.bigEnd());
+                return bx.index(iv_coarse) + bx.numPts() * (iv_remainder * ref_offset).sum();
+        });
+}
+
 
 #ifdef AMREX_USE_HDF5_ASYNC
 void async_vol_es_wait_particle();
