@@ -880,7 +880,7 @@ void PermutationForDeposition (Gpu::DeviceVector<index_type>& perm, index_type n
 template <class index_type, class pos_struct>
 void PermutationForDepositionSpesh (Gpu::DeviceVector<index_type>& perm, index_type nitems,
                                pos_struct const* v, Box bx, Geometry geom, const IntVect idx_type,
-                               const index_type* tilePerm)
+                               const index_type* tilePerm, const index_type nBins)
 {
     AMREX_ALWAYS_ASSERT(idx_type.allGE(IntVect(0)) && idx_type.allLE(IntVect(2)));
 
@@ -902,7 +902,7 @@ void PermutationForDepositionSpesh (Gpu::DeviceVector<index_type>& perm, index_t
     const int ref_product = AMREX_D_TERM(refine_vect[0], * refine_vect[1], * refine_vect[2]);
     const IntVect ref_offset(AMREX_D_DECL(1, refine_vect[0], refine_vect[0] * refine_vect[1]));
 
-    PermutationForDeposition<index_type>(perm, nitems, bx.numPts() * ref_product,
+    PermutationForDeposition<index_type>(perm, nitems, nBins,
         [=] AMREX_GPU_DEVICE (index_type idx) noexcept
             {
 
