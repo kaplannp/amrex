@@ -784,10 +784,12 @@ void PermutationForDeposition (Gpu::DeviceVector<index_type>& perm, index_type n
     amrex::ParallelFor(nitems, [=] AMREX_GPU_DEVICE (index_type i) noexcept
     {
         i = nitems - i - 1;
+        //I imagine this is out of bounds?
         pllist_next[i] = Gpu::Atomic::Exch(pllist_start + f(i), i);
     });
 
 #if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
+    //printf("launch = %d\n", nbins / gpu_block_size);
     amrex::launch<gpu_block_size>(nbins / gpu_block_size, Gpu::gpuStream(),
         [=] AMREX_GPU_DEVICE () {
             __shared__ index_type sdata[gpu_block_size];
@@ -880,7 +882,7 @@ void PermutationForDeposition (Gpu::DeviceVector<index_type>& perm, index_type n
 template <class index_type, class pos_struct>
 void PermutationForDepositionSpesh (Gpu::DeviceVector<index_type>& perm, index_type nitems,
                                pos_struct const* v, Box bx, Geometry geom, const IntVect idx_type,
-                               const index_type* tilePerm, const index_type nBins)
+                               const index_type* tilePerm, const index_type nBins, long nItemsTotal)
 {
     AMREX_ALWAYS_ASSERT(idx_type.allGE(IntVect(0)) && idx_type.allLE(IntVect(2)));
 
@@ -905,7 +907,9 @@ void PermutationForDepositionSpesh (Gpu::DeviceVector<index_type>& perm, index_t
     PermutationForDeposition<index_type>(perm, nitems, nBins,
         [=] AMREX_GPU_DEVICE (index_type idx) noexcept
             {
-
+                //if (nItemsTotal - idx <= 0)
+                //    printf("nItems - idx = %d\n", nItemsTotal - idx);
+                //printf("idx = %d", idx);
                 //* is component wise, so why mul by inv size (dxi)?
                 // maybe inverse is like multiplicative inverse, not reverse order
                 IntVect iv = ((v[tilePerm[idx]].pos() - pos_offset) * dxi).round(); //vector!
@@ -915,6 +919,8 @@ void PermutationForDepositionSpesh (Gpu::DeviceVector<index_type>& perm, index_t
 
                 iv_coarse = iv_coarse.max(bx.smallEnd());
                 iv_coarse = iv_coarse.min(bx.bigEnd());
+                //printf("bin indexer = %d", bx.index(iv_coarse) + bx.numPts() * (iv_remainder * ref_offset).sum());
+                //printf("particle Index is = %d\n", tilePerm[idx]);
                 return bx.index(iv_coarse) + bx.numPts() * (iv_remainder * ref_offset).sum();
         });
 }
